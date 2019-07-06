@@ -13,7 +13,8 @@ module.exports = {
     convert,
     isEmptyField,
     removeEmptyFields,
-    getNCharacters
+    getNCharacters,
+    safeUnwind
 };
 
 /**
@@ -181,4 +182,44 @@ function removeEmptyFields(fields) {
  */
 function getNCharacters(str, start, n) {
     return str.substring(start, start + n);
+}
+
+/**
+ * Performs a "safe" unwind on an array of documents with a given path
+ * @param array
+ * @param path
+ */
+function safeUnwind(array, path) {
+    if (!array.length) { array = [array]; }
+
+    if (path.includes('.')) {
+        return unwindNestedPath(array, path);
+    }
+    return unwindPath(array, path);
+}
+
+function unwindPath(array, property) {
+    return array.reduce(function (acc, curr) {
+            // if the value at curr[prop] is not an array, just concat to acc
+            if (!_.isArray(curr[property])) return [...acc, curr];
+
+            return [...acc, ...curr[property].map((x) => ({ ...curr, [property]: x}))]
+        },
+        []);
+}
+
+function unwindNestedPath(array, path) {
+    const splitPath = path.split('.'),
+        property = splitPath.shift(),
+        remainingPath = splitPath.join('.'),
+        result = array.reduce((acc, curr) => {
+
+            // if the value at curr[prop] is not an array, just concat to acc
+            if (!_.isArray(curr[property])) return [...acc, curr];
+
+            return [...acc, ...curr[property].map((x) =>
+                    ({ ...curr, [property]: safeUnwind(x, remainingPath)}))]
+        }, []);
+
+    return safeUnwind(result, property);
 }
