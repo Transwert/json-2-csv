@@ -221,5 +221,5 @@ function unwindNestedPath(array, path) {
                     ({ ...curr, [property]: safeUnwind(x, remainingPath)}))]
         }, []);
 
-    return safeUnwind(result, property);
+    return safeUnwind(result, remainingPath);
 }
